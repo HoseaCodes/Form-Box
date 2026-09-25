@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Formbox examples</title>
+<body style="font:16px system-ui;max-width:32rem;margin:2rem auto;padding:0 16px">
+
+<!-- 1) Zero-JS: a plain HTML form. Replace the form id. -->
+<h2>Plain HTML</h2>
+<form action="http://localhost:8787/f/f_REPLACE_ME" method="POST">
+  <input name="email" type="email" placeholder="Email" required>
+  <textarea name="message" placeholder="Message" required></textarea>
+  <input type="hidden" name="_subject" value="New contact message">
+  <input type="hidden" name="_next" value="https://yoursite.com/thanks">
+  <!-- honeypot: hidden from humans, bots fill it in -->
+  <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
+  <button>Send</button>
+</form>
+
+<!-- 2) fetch() with JSON, no page reload -->
+<h2>With fetch</h2>
+<form id="ajax">
+  <input name="email" type="email" placeholder="Email" required>
+  <textarea name="message" placeholder="Message" required></textarea>
+  <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px">
+  <button>Send</button>
+  <p id="status"></p>
+</form>
+<script type="module">
+  import { submitForm } from "../client/formbox-client.js";
+  const el = document.getElementById("ajax");
+  el.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const status = document.getElementById("status");
+    try {
+      await submitForm("http://localhost:8787", "f_REPLACE_ME", el);
+      status.textContent = "Thanks!"; el.reset();
+    } catch (err) {
+      status.textContent = err.message;
+    }
+  });
+</script>
+</body>
+</html>

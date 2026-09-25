@@ -1,0 +1,9 @@
+services:
+  formbox:
+    build: .
+    ports: ["8787:8787"]
+    env_file: .env
+    volumes: ["formbox-data:/data"]
+    restart: unless-stopped
+volumes:
+  formbox-data:

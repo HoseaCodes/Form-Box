@@ -2,6 +2,7 @@ import { createHmac } from "node:crypto";
 import nodemailer, { type Transporter } from "nodemailer";
 import type { Config } from "./config.js";
 import type { Form, Store, Submission } from "./db.js";
+import { sendAutoresponse } from "./autorespond.js";
 
 export interface Notifier {
   onSubmission(form: Form, submission: Submission, extras: { subject?: string; replyTo?: string }): void;
@@ -40,6 +41,11 @@ export class DefaultNotifier implements Notifier {
     }
     if (this.transport && form.notifyEmails.length) {
       void this.sendEmail(form, submission, extras).catch((e) => console.error("[email]", e));
+    }
+    if (this.config.autorespond[form.id]) {
+      void sendAutoresponse(this.config, form, submission, this.fetchImpl).catch((e) =>
+        console.error("[autoresponse]", form.id, submission.id, e),
+      );
     }
   }
 

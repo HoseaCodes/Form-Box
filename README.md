@@ -5,7 +5,7 @@ A tiny self-hosted Formspree-style form backend. Point any HTML form or `fetch()
 - **Stack:** Node 22+, TypeScript, [Hono](https://hono.dev), SQLite (better-sqlite3). One process, one database file.
 - **Accepts:** JSON, `application/x-www-form-urlencoded`, and `multipart/form-data` (file fields are dropped).
 - **Protection:** per-form origin allow-list and CORS, honeypot spam field, per-IP rate limit, size and field limits, required fields, no open redirects.
-- **Delivery:** REST API with cursor pagination, CSV export, HMAC-signed webhooks with retries, and optional SMTP email.
+- **Delivery:** REST API with cursor pagination, CSV export, HMAC-signed webhooks with retries, optional SMTP notification email, and an optional confirmation email back to the submitter.
 - **Keys:** one admin key for everything, plus a per-form `fk_…` key so each app can read only its own form.
 
 ## Run it
@@ -134,6 +134,32 @@ app.post("/hooks/formbox", express.text({ type: "*/*" }), async (req, res) => {
   res.sendStatus(200);
 });
 ```
+
+## Autoresponse
+
+Formbox can send a confirmation email to whoever filled in the form, such as a "thanks, here's your download" message. It goes through a transactional email API, not the SMTP settings used for notification emails. Set it up with environment variables:
+
+```bash
+EMAIL_API_URL=https://api.your-email-provider.com/send
+EMAIL_API_KEY=...
+AUTORESPOND={"f_abc123":{"subject":"Your download","text":"Here it is: https://..."}}
+```
+
+The email API must accept `POST { to: [{ email }], subject, textContent }` with an `X-API-Key` header.
+
+`AUTORESPOND` is JSON keyed by form ID. Forms that aren't listed send no autoresponse. Each entry takes:
+
+| Key | Notes |
+|---|---|
+| `subject` | Email subject |
+| `text` | Plain-text body |
+| `field` | Submission field that holds the recipient address. Defaults to `email`. |
+
+How it behaves:
+
+- It's sent only for non-spam submissions, and only when the recipient field contains an email address.
+- It makes exactly one attempt, with a 10s timeout and no retries. The email API isn't idempotent, so a retry after a timeout could send the email twice. A missed confirmation is the cheaper failure, so make sure your success page also gives visitors whatever the email links to. Failures are logged as `[autoresponse]`.
+- If `AUTORESPOND` isn't valid JSON, Formbox logs an error, turns autoresponses off, and keeps accepting submissions.
 
 ## Limits and trade-offs
 
